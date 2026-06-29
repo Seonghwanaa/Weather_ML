@@ -7,6 +7,7 @@
 - 시간별·누적 강수량 입력 → 실시간 침수 위험도 예측
 - Leaflet.js 기반 전국 지하차도 침수 사례 지도 시각화
 - 위험도 3단계 표시 (낮음 / 중간 / 높음)
+- **홍수 영웅 퀴즈** — 초등학생 대상 O/X 퀴즈 게임 (10문제)
 
 ## 기술 스택
 
@@ -71,6 +72,7 @@ python app.py
 ├── requirements.txt        # 패키지 목록
 ├── README.md
 ├── .gitignore
+├── 홍수영웅퀴즈.html         # 초등학생 O/X 퀴즈 게임
 ├── data/
 │   └── 지하차도_ML_최종데이터.csv
 ├── model/                  # train_model.py 실행 후 자동 생성 (.gitignore 제외)

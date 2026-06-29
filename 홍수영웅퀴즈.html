@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>홍수 영웅 퀴즈!</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Arial Rounded MT Bold', '맑은 고딕', sans-serif;
+      background: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* 빗방울 배경 */
+    .rain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    .drop {
+      position: absolute;
+      width: 2px;
+      background: linear-gradient(transparent, #74b9ff);
+      animation: fall linear infinite;
+      opacity: 0.5;
+    }
+    @keyframes fall {
+      from { transform: translateY(-100px); }
+      to   { transform: translateY(110vh); }
+    }
+
+    .game-wrap {
+      position: relative;
+      z-index: 10;
+      width: 620px;
+      max-width: 95vw;
+    }
+
+    /* 타이틀 화면 */
+    #screen-title {
+      text-align: center;
+      padding: 40px 30px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 28px;
+      border: 2px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+    }
+    #screen-title .emoji { font-size: 5rem; margin-bottom: 10px; }
+    #screen-title h1 { font-size: 2.4rem; color: #fdcb6e; text-shadow: 0 2px 10px rgba(253,203,110,0.5); margin-bottom: 8px; }
+    #screen-title p  { color: #b2bec3; font-size: 1rem; margin-bottom: 30px; }
+    .btn-start {
+      padding: 16px 48px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #fdcb6e, #e17055);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(225,112,85,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-start:hover { transform: scale(1.06); box-shadow: 0 8px 25px rgba(225,112,85,0.6); }
+
+    /* 퀴즈 화면 */
+    #screen-quiz { display: none; }
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .hud-score {
+      background: rgba(253,203,110,0.15);
+      border: 1.5px solid #fdcb6e;
+      border-radius: 20px;
+      padding: 6px 18px;
+      color: #fdcb6e;
+      font-size: 1rem;
+      font-weight: bold;
+    }
+    .hud-num { color: #b2bec3; font-size: 0.95rem; }
+
+    /* 진행 바 */
+    .progress-wrap { background: rgba(255,255,255,0.1); border-radius: 6px; height: 8px; margin-bottom: 20px; }
+    .progress-fill  { height: 100%; background: linear-gradient(90deg, #74b9ff, #fdcb6e); border-radius: 6px; transition: width 0.4s; }
+
+    /* 캐릭터 + 말풍선 */
+    .character-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .car { font-size: 3.2rem; animation: bounce 1.2s ease-in-out infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    .bubble {
+      background: #fff;
+      color: #2d3436;
+      border-radius: 16px 16px 16px 4px;
+      padding: 10px 16px;
+      font-size: 0.88rem;
+      max-width: 340px;
+      line-height: 1.5;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    /* 문제 카드 */
+    .question-card {
+      background: rgba(255,255,255,0.07);
+      border: 2px solid rgba(255,255,255,0.12);
+      border-radius: 22px;
+      padding: 28px 26px;
+      margin-bottom: 22px;
+      backdrop-filter: blur(8px);
+    }
+    .question-label {
+      font-size: 0.8rem;
+      color: #74b9ff;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .question-text {
+      font-size: 1.35rem;
+      color: #fff;
+      line-height: 1.6;
+      font-weight: bold;
+    }
+    .question-hint {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: #b2bec3;
+    }
+
+    /* O X 버튼 */
+    .ox-wrap { display: flex; gap: 16px; }
+    .btn-o, .btn-x {
+      flex: 1;
+      padding: 22px;
+      font-size: 2.4rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-o {
+      background: linear-gradient(135deg, #00b894, #00cec9);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(0,184,148,0.4);
+    }
+    .btn-x {
+      background: linear-gradient(135deg, #e17055, #d63031);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(214,48,49,0.4);
+    }
+    .btn-o:hover { transform: scale(1.06); }
+    .btn-x:hover { transform: scale(1.06); }
+    .btn-o:disabled, .btn-x:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+    /* 정답/오답 피드백 */
+    .feedback {
+      margin-top: 18px;
+      padding: 16px 20px;
+      border-radius: 16px;
+      font-size: 1rem;
+      line-height: 1.6;
+      display: none;
+      animation: popIn 0.3s ease;
+    }
+    @keyframes popIn { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+    .feedback.correct { background: rgba(0,184,148,0.2); border: 2px solid #00b894; color: #55efc4; }
+    .feedback.wrong   { background: rgba(214,48,49,0.2);  border: 2px solid #d63031; color: #ff7675; }
+    .feedback-title   { font-size: 1.2rem; font-weight: bold; margin-bottom: 6px; }
+
+    .btn-next {
+      display: none;
+      width: 100%;
+      margin-top: 14px;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .btn-next:hover { transform: scale(1.03); }
+
+    /* 결과 화면 */
+    #screen-result {
+      display: none;
+      text-align: center;
+      padding: 40px 30px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 28px;
+      border: 2px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+    }
+    .result-badge { font-size: 5rem; margin-bottom: 10px; }
+    .result-title { font-size: 2rem; font-weight: bold; color: #fdcb6e; margin-bottom: 8px; }
+    .result-score { font-size: 3.5rem; font-weight: bold; color: #fff; margin: 10px 0; }
+    .result-msg   { color: #b2bec3; font-size: 1rem; margin-bottom: 28px; line-height: 1.7; }
+    .btn-retry {
+      padding: 14px 42px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #fdcb6e, #e17055);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(225,112,85,0.4);
+    }
+    .btn-retry:hover { transform: scale(1.05); }
+  </style>
+</head>
+<body>
+
+<!-- 빗방울 배경 -->
+<div class="rain" id="rain"></div>
+
+<div class="game-wrap">
+
+  <!-- 타이틀 -->
+  <div id="screen-title">
+    <div class="emoji">🚗🌧️</div>
+    <h1>홍수 영웅 퀴즈!</h1>
+    <p>지하차도 침수에 대해 얼마나 알고 있나요?<br>O / X 로 대답해 보세요!</p>
+    <button class="btn-start" onclick="startGame()">시작하기 ▶</button>
+  </div>
+
+  <!-- 퀴즈 -->
+  <div id="screen-quiz">
+    <div class="hud">
+      <div class="hud-score">⭐ 점수: <span id="scoreDisplay">0</span>점</div>
+      <div class="hud-num"><span id="qNum">1</span> / 10</div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="character-area">
+      <div class="car" id="carEmoji">🚗</div>
+      <div class="bubble" id="bubble">이번 문제 잘 생각해봐요!</div>
+    </div>
+    <div class="question-card">
+      <div class="question-label">📋 문제</div>
+      <div class="question-text" id="questionText"></div>
+      <div class="question-hint" id="questionHint"></div>
+    </div>
+    <div class="ox-wrap">
+      <button class="btn-o" onclick="answer(true)">⭕ 맞아요</button>
+      <button class="btn-x" onclick="answer(false)">❌ 아니에요</button>
+    </div>
+    <div class="feedback" id="feedback">
+      <div class="feedback-title" id="feedbackTitle"></div>
+      <div id="feedbackDesc"></div>
+    </div>
+    <button class="btn-next" id="btnNext" onclick="nextQuestion()">다음 문제 →</button>
+  </div>
+
+  <!-- 결과 -->
+  <div id="screen-result">
+    <div class="result-badge" id="resultBadge">🏆</div>
+    <div class="result-title" id="resultTitle">홍수 영웅!</div>
+    <div class="result-score" id="resultScore">100점</div>
+    <div class="result-msg" id="resultMsg"></div>
+    <button class="btn-retry" onclick="retryGame()">다시 도전! 🔄</button>
+  </div>
+
+</div>
+
+<script>
+// ── 빗방울 생성 ──
+const rain = document.getElementById('rain');
+for (let i = 0; i < 60; i++) {
+  const d = document.createElement('div');
+  d.className = 'drop';
+  d.style.left   = Math.random() * 100 + 'vw';
+  d.style.height  = (Math.random() * 60 + 30) + 'px';
+  d.style.animationDuration  = (Math.random() * 0.8 + 0.5) + 's';
+  d.style.animationDelay     = (Math.random() * 2) + 's';
+  rain.appendChild(d);
+}
+
+// ── 문제 목록 ──
+const questions = [
+  {
+    q: "비가 많이 올수록 지하차도가 위험해져요.",
+    hint: "💧 비가 지하차도 안으로 흘러들어 올 수 있어요!",
+    answer: true,
+    ok:   "맞아요! 비가 많이 오면 지하차도 안에 물이 차서 위험해져요. 비가 많이 올 때는 지하차도를 피하는 게 좋아요! 🌧️",
+    no:   "아쉽지만 틀렸어요. 비가 많이 오면 지하차도는 물에 잠길 수 있어서 아주 위험해요!"
+  },
+  {
+    q: "지하차도에 물이 들어오기 시작하면 차 안에서 기다리면 돼요.",
+    hint: "🚗 차 안이 안전할까요?",
+    answer: false,
+    ok:   "정답! 물이 차오르면 차 문이 안 열릴 수 있어요. 빨리 차에서 나와서 높은 곳으로 대피해야 해요! 🏃",
+    no:   "틀렸어요! 물이 차오르면 수압 때문에 차 문이 안 열려요. 빨리 탈출해야 해요!"
+  },
+  {
+    q: "배수펌프는 지하차도의 물을 빼주는 기계예요.",
+    hint: "💨 펌프는 어떤 일을 할까요?",
+    answer: true,
+    ok:   "맞아요! 배수펌프는 물을 빠르게 빼주는 기계예요. 배수펌프가 있으면 침수 위험이 줄어들어요! ✅",
+    no:   "아쉽지만 틀렸어요. 배수펌프는 물을 빠르게 빼주는 기계예요!"
+  },
+  {
+    q: "지하차도 입구에 물이 보이면 그냥 통과해도 괜찮아요.",
+    hint: "🌊 입구에 물이 있다면?",
+    answer: false,
+    ok:   "정답! 입구에 물이 보이면 절대 들어가면 안 돼요. 안쪽은 더 깊을 수 있어요! ⛔",
+    no:   "틀렸어요! 입구에 물이 보이면 절대 들어가면 안 돼요. 다른 길로 돌아가야 해요!"
+  },
+  {
+    q: "깊은 지하차도가 얕은 지하차도보다 물에 더 잘 잠겨요.",
+    hint: "📏 깊이와 침수의 관계를 생각해봐요!",
+    answer: true,
+    ok:   "맞아요! 깊은 지하차도는 물이 더 많이 들어올 수 있어서 더 위험해요! 📊",
+    no:   "아쉽지만 틀렸어요. 깊을수록 물이 더 많이 차서 더 위험해요!"
+  },
+  {
+    q: "강이나 하천 옆에 있는 지하차도는 침수 위험이 더 높아요.",
+    hint: "🏞️ 강물이 넘치면 어디로 흐를까요?",
+    answer: true,
+    ok:   "정답! 강이 넘치면 낮은 곳인 지하차도로 물이 흘러들어와요. 하천 옆 지하차도는 특히 위험해요! 🌊",
+    no:   "아쉽지만 틀렸어요. 강물이 넘치면 주변 낮은 곳인 지하차도로 흘러들어와요!"
+  },
+  {
+    q: "침수 위험 경보가 울릴 때 지하차도를 통과하면 안 돼요.",
+    hint: "🚨 경보가 울리면 어떻게 해야 할까요?",
+    answer: true,
+    ok:   "맞아요! 침수 경보가 울리면 지하차도는 매우 위험해요. 꼭 다른 길로 가야 해요! 🚨",
+    no:   "틀렸어요! 경보가 울리면 지하차도 통과는 절대 안 돼요!"
+  },
+  {
+    q: "비가 조금 와도 모든 지하차도는 항상 위험해요.",
+    hint: "🌂 조금 오는 비도 위험할까요?",
+    answer: false,
+    ok:   "정답! 비가 조금 올 때는 대부분 안전해요. 하지만 비가 많이 올 때는 꼭 조심해야 해요! ☀️",
+    no:   "아쉽지만 틀렸어요. 비가 조금 올 때는 대부분 괜찮아요. 많이 올 때 위험해져요!"
+  },
+  {
+    q: "오래된 지하차도는 새 지하차도보다 침수에 더 취약할 수 있어요.",
+    hint: "🏗️ 오래된 시설물은 어떨까요?",
+    answer: true,
+    ok:   "맞아요! 오래된 지하차도는 배수 시설이 낡아서 물이 더 잘 찰 수 있어요! 🔧",
+    no:   "아쉽지만 틀렸어요. 오래된 시설은 배수 능력이 떨어져서 더 위험할 수 있어요!"
+  },
+  {
+    q: "지하차도가 위험할 때 돌아가는 것은 현명한 선택이에요.",
+    hint: "🗺️ 돌아가면 시간이 걸리지만...",
+    answer: true,
+    ok:   "맞아요! 생명이 가장 중요해요. 조금 돌아가더라도 안전한 길을 선택하는 것이 진짜 용감한 거예요! 🦸",
+    no:   "아쉽지만 틀렸어요. 위험을 피해서 돌아가는 게 가장 현명한 선택이에요!"
+  },
+];
+
+let currentQ = 0;
+let score = 0;
+let answered = false;
+
+const bubbleMsgs = [
+  "이번 문제 잘 생각해봐요!",
+  "집중! 잘 할 수 있어요! 💪",
+  "좋아요, 계속해봐요!",
+  "거의 다 왔어요! 🎯",
+  "마지막까지 화이팅! 🚗💨",
+];
+
+function startGame() {
+  document.getElementById('screen-title').style.display = 'none';
+  document.getElementById('screen-quiz').style.display  = 'block';
+  currentQ = 0;
+  score = 0;
+  showQuestion();
+}
+
+function showQuestion() {
+  const q = questions[currentQ];
+  answered = false;
+
+  document.getElementById('questionText').textContent  = q.q;
+  document.getElementById('questionHint').textContent  = q.hint;
+  document.getElementById('qNum').textContent          = currentQ + 1;
+  document.getElementById('scoreDisplay').textContent  = score;
+  document.getElementById('progressFill').style.width  = (currentQ / questions.length * 100) + '%';
+  document.getElementById('bubble').textContent        = bubbleMsgs[Math.floor(Math.random() * bubbleMsgs.length)];
+  document.getElementById('carEmoji').textContent      = '🚗';
+
+  document.querySelector('.btn-o').disabled = false;
+  document.querySelector('.btn-x').disabled = false;
+
+  const fb = document.getElementById('feedback');
+  fb.style.display = 'none';
+  fb.className = 'feedback';
+  document.getElementById('btnNext').style.display = 'none';
+}
+
+function answer(userAnswer) {
+  if (answered) return;
+  answered = true;
+
+  const q = questions[currentQ];
+  const correct = (userAnswer === q.answer);
+
+  document.querySelector('.btn-o').disabled = true;
+  document.querySelector('.btn-x').disabled = true;
+
+  const fb    = document.getElementById('feedback');
+  const title = document.getElementById('feedbackTitle');
+  const desc  = document.getElementById('feedbackDesc');
+
+  if (correct) {
+    score += 10;
+    fb.className = 'feedback correct';
+    title.textContent = '🎉 정답이에요!';
+    desc.textContent  = q.ok;
+    document.getElementById('carEmoji').textContent = '🚗💨';
+    document.getElementById('bubble').textContent   = '잘 알고 있군요! 대단해요!';
+  } else {
+    fb.className = 'feedback wrong';
+    title.textContent = '😅 아쉬워요!';
+    desc.textContent  = q.no;
+    document.getElementById('carEmoji').textContent = '😰';
+    document.getElementById('bubble').textContent   = '괜찮아요! 이번 기회에 배웠어요!';
+  }
+
+  fb.style.display = 'block';
+  document.getElementById('scoreDisplay').textContent = score;
+  document.getElementById('btnNext').style.display = 'block';
+  document.getElementById('btnNext').textContent =
+    currentQ < questions.length - 1 ? '다음 문제 →' : '결과 보기 🏆';
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= questions.length) {
+    showResult();
+  } else {
+    showQuestion();
+  }
+}
+
+function showResult() {
+  document.getElementById('screen-quiz').style.display   = 'none';
+  document.getElementById('screen-result').style.display = 'block';
+
+  document.getElementById('resultScore').textContent = score + '점';
+
+  let badge, title, msg;
+  if (score >= 100) {
+    badge = '🏆'; title = '완벽한 홍수 영웅!';
+    msg = '와! 10문제 모두 맞혔어요!\n당신은 진정한 홍수 안전 전문가예요.\n친구들에게도 알려주세요! 🌟';
+  } else if (score >= 80) {
+    badge = '🥇'; title = '대단한 홍수 영웅!';
+    msg = '아주 잘 알고 있어요!\n몇 가지만 더 공부하면 완벽해질 거예요. 💪';
+  } else if (score >= 60) {
+    badge = '🥈'; title = '성장하는 홍수 영웅!';
+    msg = '절반 이상 맞혔어요!\n다시 한 번 도전해서 더 높은 점수를 받아봐요! 📚';
+  } else {
+    badge = '🌱'; title = '홍수 영웅 견습생!';
+    msg = '아직 배울 게 많아요!\n다시 도전해서 홍수 안전에 대해 더 알아봐요. 파이팅! 🔥';
+  }
+
+  document.getElementById('resultBadge').textContent = badge;
+  document.getElementById('resultTitle').textContent  = title;
+  document.getElementById('resultMsg').textContent    = msg;
+}
+
+function retryGame() {
+  document.getElementById('screen-result').style.display = 'none';
+  document.getElementById('screen-quiz').style.display   = 'none';
+  document.getElementById('screen-title').style.display  = 'block';
+}
+</script>
+</body>
+</html>
