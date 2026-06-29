@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>지하차도 침수 위험 예측 시스템</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f1923; color: #e0e0e0; }
+
+    header {
+      background: #1a2634;
+      padding: 18px 30px;
+      border-bottom: 2px solid #2980b9;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    header h1 { font-size: 1.3rem; color: #fff; }
+    header span { font-size: 0.85rem; color: #7fb3d3; }
+
+    .container {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      height: calc(100vh - 64px);
+    }
+
+    /* 왼쪽 패널 */
+    .panel {
+      background: #1a2634;
+      padding: 24px 20px;
+      overflow-y: auto;
+      border-right: 1px solid #2c3e50;
+    }
+    .section-title {
+      font-size: 0.75rem;
+      color: #7fb3d3;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      margin-top: 20px;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    label { display: block; font-size: 0.82rem; color: #aaa; margin-bottom: 4px; margin-top: 12px; }
+    input[type=number], select {
+      width: 100%;
+      padding: 8px 10px;
+      background: #0f1923;
+      border: 1px solid #2c3e50;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+    }
+    input[type=number]:focus, select:focus {
+      outline: none;
+      border-color: #2980b9;
+    }
+
+    .radio-group { display: flex; gap: 10px; margin-top: 4px; }
+    .radio-group label {
+      display: flex; align-items: center; gap: 6px;
+      color: #ccc; cursor: pointer; margin: 0;
+      background: #0f1923;
+      border: 1px solid #2c3e50;
+      border-radius: 6px;
+      padding: 7px 14px;
+      flex: 1; justify-content: center;
+      font-size: 0.85rem;
+    }
+    .radio-group input[type=radio] { display: none; }
+    .radio-group input[type=radio]:checked + span {
+      color: #2980b9;
+      font-weight: bold;
+    }
+    .radio-group label:has(input:checked) {
+      border-color: #2980b9;
+      background: #1a2d40;
+    }
+
+    .btn-predict {
+      width: 100%;
+      margin-top: 24px;
+      padding: 13px;
+      background: #2980b9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-predict:hover { background: #1f6391; }
+
+    /* 결과 박스 */
+    .result-box {
+      margin-top: 20px;
+      padding: 20px;
+      background: #0f1923;
+      border-radius: 10px;
+      border: 1px solid #2c3e50;
+      display: none;
+    }
+    .result-box.visible { display: block; }
+    .result-percent {
+      font-size: 3rem;
+      font-weight: bold;
+      text-align: center;
+      line-height: 1;
+    }
+    .result-label {
+      text-align: center;
+      font-size: 1rem;
+      margin-top: 6px;
+      font-weight: bold;
+    }
+    .result-detail {
+      margin-top: 14px;
+      font-size: 0.8rem;
+      color: #888;
+      text-align: center;
+    }
+
+    /* 게이지 바 */
+    .gauge-wrap { margin-top: 14px; }
+    .gauge-bg {
+      background: #2c3e50;
+      border-radius: 6px;
+      height: 10px;
+      overflow: hidden;
+    }
+    .gauge-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.6s ease;
+    }
+    .gauge-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    /* 지도 */
+    #map { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>지하차도 침수 위험 예측 시스템</h1>
+    <span>머신러닝 기반 실시간 침수 위험도 분석 &nbsp;|&nbsp; Random Forest / XGBoost</span>
+  </div>
+</header>
+
+<div class="container">
+  <!-- 왼쪽: 입력 패널 -->
+  <div class="panel">
+
+    <div class="section-title">강수량 입력</div>
+
+    <label>시간당 강수량 (mm/h)</label>
+    <input type="number" id="r1" value="10" min="0" max="200" step="0.1"/>
+
+    <label>3시간 누적 강수량 (mm)</label>
+    <input type="number" id="r3" value="25" min="0" max="500" step="0.1"/>
+
+    <label>6시간 누적 강수량 (mm)</label>
+    <input type="number" id="r6" value="40" min="0" max="700" step="0.1"/>
+
+    <label>24시간 누적 강수량 (mm)</label>
+    <input type="number" id="r24" value="60" min="0" max="1000" step="0.1"/>
+
+    <div class="section-title">지하차도 정보</div>
+
+    <label>깊이 (m)</label>
+    <input type="number" id="depth" value="3.5" min="1" max="10" step="0.1"/>
+
+    <label>길이 (m)</label>
+    <input type="number" id="length" value="200" min="50" max="800" step="1"/>
+
+    <label>준공연도</label>
+    <input type="number" id="year" value="2000" min="1970" max="2025" step="1"/>
+
+    <label>차로수</label>
+    <select id="lanes">
+      <option value="2">2차로</option>
+      <option value="4" selected>4차로</option>
+      <option value="6">6차로</option>
+    </select>
+
+    <label>배수펌프</label>
+    <div class="radio-group">
+      <label><input type="radio" name="pump" value="1"> <span>있음</span></label>
+      <label><input type="radio" name="pump" value="0" checked> <span>없음</span></label>
+    </div>
+
+    <label>하천 인접 여부</label>
+    <div class="radio-group">
+      <label><input type="radio" name="river" value="1"> <span>인접</span></label>
+      <label><input type="radio" name="river" value="0" checked> <span>해당없음</span></label>
+    </div>
+
+    <button class="btn-predict" onclick="predict()">침수 위험도 예측</button>
+
+    <!-- 결과 -->
+    <div class="result-box" id="resultBox">
+      <div class="result-percent" id="resultPercent">--</div>
+      <div class="result-label" id="resultLabel">--</div>
+      <div class="gauge-wrap">
+        <div class="gauge-bg">
+          <div class="gauge-fill" id="gaugeFill" style="width:0%"></div>
+        </div>
+        <div class="gauge-labels"><span>0%</span><span>위험</span><span>100%</span></div>
+      </div>
+      <div class="result-detail" id="resultDetail"></div>
+    </div>
+
+  </div>
+
+  <!-- 오른쪽: 지도 -->
+  <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── 지도 초기화 ──
+const map = L.map('map').setView([36.5, 127.8], 7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// 주요 침수 사례 마커
+const floodCases = [
+  { name: '초량제1지하차도', lat: 35.1159, lon: 129.0378, year: 2020, dead: 3 },
+  { name: '궁평2지하차도',   lat: 36.6279, lon: 127.4528, year: 2023, dead: 14 },
+  { name: '강남대로지하차도', lat: 37.5172, lon: 127.0473, year: 2022, dead: 0 },
+  { name: '서초지하차도',    lat: 37.4837, lon: 127.0324, year: 2022, dead: 0 },
+  { name: '포항지하차도',    lat: 36.0190, lon: 129.3435, year: 2022, dead: 0 },
+  { name: '창원마산지하차도', lat: 35.1795, lon: 128.5434, year: 2022, dead: 0 },
+];
+
+floodCases.forEach(c => {
+  const color = c.dead > 0 ? '#e74c3c' : '#f39c12';
+  const marker = L.circleMarker([c.lat, c.lon], {
+    radius: c.dead > 0 ? 10 : 7,
+    fillColor: color, color: '#fff',
+    weight: 1.5, opacity: 1, fillOpacity: 0.85
+  }).addTo(map);
+  marker.bindPopup(`
+    <b>${c.name}</b><br>
+    침수연도: ${c.year}년<br>
+    ${c.dead > 0 ? `<span style="color:#e74c3c">사망 ${c.dead}명</span>` : '재산피해'}
+  `);
+});
+
+// 범례
+const legend = L.control({ position: 'bottomright' });
+legend.onAdd = () => {
+  const div = L.DomUtil.create('div');
+  div.style.cssText = 'background:#1a2634;padding:10px 14px;border-radius:8px;color:#ddd;font-size:12px;line-height:1.8';
+  div.innerHTML = `
+    <b>침수 사례</b><br>
+    <span style="color:#e74c3c">●</span> 인명피해 발생<br>
+    <span style="color:#f39c12">●</span> 재산피해
+  `;
+  return div;
+};
+legend.addTo(map);
+
+// ── 예측 함수 ──
+async function predict() {
+  const body = {
+    rainfall_1h:  parseFloat(document.getElementById('r1').value),
+    rainfall_3h:  parseFloat(document.getElementById('r3').value),
+    rainfall_6h:  parseFloat(document.getElementById('r6').value),
+    rainfall_24h: parseFloat(document.getElementById('r24').value),
+    depth_m:      parseFloat(document.getElementById('depth').value),
+    length_m:     parseFloat(document.getElementById('length').value),
+    built_year:   parseInt(document.getElementById('year').value),
+    lanes:        parseInt(document.getElementById('lanes').value),
+    has_drainage_pump: parseInt(document.querySelector('input[name="pump"]:checked').value),
+    nearby_river:      parseInt(document.querySelector('input[name="river"]:checked').value),
+  };
+
+  const res = await fetch('/predict', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+
+  const box    = document.getElementById('resultBox');
+  const pct    = document.getElementById('resultPercent');
+  const lbl    = document.getElementById('resultLabel');
+  const gauge  = document.getElementById('gaugeFill');
+  const detail = document.getElementById('resultDetail');
+
+  box.classList.add('visible');
+  pct.textContent  = data.percent + '%';
+  pct.style.color  = data.color;
+  lbl.textContent  = '침수 위험도: ' + data.risk_level;
+  lbl.style.color  = data.color;
+  gauge.style.width      = data.percent + '%';
+  gauge.style.background = data.color;
+  detail.textContent = `사용 모델: ${data.model}`;
+}
+</script>
+</body>
+</html>
