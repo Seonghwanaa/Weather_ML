@@ -1,7 +1,7 @@
 # 소프트웨어 요구사항 명세서 (SRS)
 
 **프로젝트명:** 지하차도 침수 위험 예측 시스템  
-**버전:** 1.1  
+**버전:** 1.2  
 **작성일:** 2026-06-29  
 **최종수정:** 2026-06-30  
 
@@ -41,6 +41,10 @@ Flask API 서버 (app.py)
 ML 모델 (Random Forest / XGBoost)
     ↑ 학습
 학습 데이터 (지하차도_ML_최종데이터.csv)
+
+[정적 파일 - GitHub Pages]
+시뮬레이터.html  ←  침수 위험도 대시보드 (Flask 연동)
+홍수영웅퀴즈.html  ←  교육용 퀴즈 (서버 불필요)
 ```
 
 ### 2.2 사용 기술
@@ -51,12 +55,21 @@ ML 모델 (Random Forest / XGBoost)
 | 백엔드 | Python 3.x, Flask 3.0 |
 | 프론트엔드 | HTML5, JavaScript, Leaflet.js |
 | 데이터 | 공공데이터포털 지하차도 현황 CSV + Open-Meteo ERA5 강수량 |
+| 배포 | GitHub Pages (정적), localhost:5000 (Flask API) |
 
 ### 2.3 사용자 대상
 - 지자체 재난안전 담당자
 - 기상 상황 모니터링 운영자
 - 해커톤 심사위원 및 일반 시연 관람자
 - 홍수 안전 교육 대상 초등학생
+
+### 2.4 배포 URL
+
+| 서비스 | URL |
+|--------|-----|
+| 침수 위험 시뮬레이터 | https://seonghwanaa.github.io/Weather_ML/시뮬레이터.html |
+| 홍수 영웅 퀴즈 | https://seonghwanaa.github.io/Weather_ML/홍수영웅퀴즈.html |
+| Flask API 서버 | http://localhost:5000 (로컬 실행) |
 
 ---
 
@@ -86,6 +99,7 @@ ML 모델 (Random Forest / XGBoost)
 
 ### FR-02. 침수 사례 지도 시각화
 - **설명:** 전국 주요 지하차도 침수 사례를 Leaflet.js 지도 위에 마커로 표시한다
+- **파일:** `시뮬레이터.html`
 - **마커 구분:**
   - 빨간색 (대형 마커): 인명피해 발생 사례
   - 주황색 (소형 마커): 재산피해만 발생한 사례
@@ -109,7 +123,7 @@ ML 모델 (Random Forest / XGBoost)
   "nearby_river": 1
 }
 ```
-- **Response Body:** (JSON)
+- **Response Body (정상):** (JSON)
 ```json
 {
   "probability": 0.8231,
@@ -119,8 +133,12 @@ ML 모델 (Random Forest / XGBoost)
   "model": "XGBoost"
 }
 ```
+- **에러 처리:**
+  - 입력값 누락 시 기본값 자동 적용 (강수량 0, 깊이 3.5m, 길이 200m 등)
+  - 모델 파일 미존재 시 서버 시작 불가 → `train_model.py` 먼저 실행 필요
+  - 잘못된 JSON 형식 시 HTTP 400 반환
 
-### FR-05. 홍수 영웅 퀴즈 게임
+### FR-04. 홍수 영웅 퀴즈 게임
 - **설명:** 침수 위험 관련 지식을 초등학생 눈높이에 맞춰 O/X 퀴즈로 제공한다
 - **파일:** `홍수영웅퀴즈.html` (독립 실행형 HTML, 서버 불필요)
 - **문제 수:** 10문제
@@ -136,7 +154,7 @@ ML 모델 (Random Forest / XGBoost)
   - 0~4점: 홍수 위험 인물
 - **UI:** 빗방울 애니메이션 배경, 자동차 캐릭터 반응 연출
 
-### FR-04. 모델 학습 스크립트
+### FR-05. 모델 학습 스크립트
 - **설명:** `train_model.py` 실행 시 데이터를 불러와 모델을 학습하고 `model/` 폴더에 저장한다
 - **학습 모델:** Logistic Regression, Random Forest, XGBoost
 - **저장 파일:** `best_model.pkl`, `scaler.pkl`, `features.pkl`
@@ -198,6 +216,7 @@ ML 모델 (Random Forest / XGBoost)
 - ERA5 재분석 데이터는 약 9km 격자 단위로 제공되어 국지성 집중호우는 과소평가될 수 있음
 - 침수 사례 60건 중 일부는 정확한 침수 날짜를 확인하지 못해 주요 집중호우 발생일로 대체함
 - 배수펌프 유무·하천 인접 여부는 실측 데이터가 부족하여 통계적 추정값 사용
+- Flask API는 로컬 환경에서만 동작하며 외부 배포 시 별도 서버 환경 필요
 
 ---
 
@@ -207,3 +226,4 @@ ML 모델 (Random Forest / XGBoost)
 - 지자체 CCTV 연계를 통한 실시간 침수 감지
 - 지하차도별 배수펌프 용량 데이터 확보 시 정확도 향상 기대
 - 모바일 반응형 UI 개선
+- Flask API 클라우드 배포 (AWS / GCP 등) 를 통한 시뮬레이터 완전 온라인화
