@@ -5,13 +5,13 @@
 ## 주요 기능
 
 - 시간별·누적 강수량 입력 → 실시간 침수 위험도 예측
-- Leaflet.js 기반 전국 지하차도 침수 사례 지도 시각화
+- Leaflet.js 기반 전국 지하차도 침수 사례 지도 시각화 → [시뮬레이터 바로가기 🗺️](https://seonghwanaa.github.io/Weather_ML/시뮬레이터.html)
 - 위험도 3단계 표시 (낮음 / 중간 / 높음)
 - **홍수 영웅 퀴즈** — 초등학생 대상 O/X 퀴즈 게임 (10문제) → [바로 플레이하기 🎮](https://seonghwanaa.github.io/Weather_ML/홍수영웅퀴즈.html)
 
 ## 시스템 플로우차트
 
-![시스템 플로우차트](플로우차트.png)
+[![시스템 플로우차트](플로우차트.png)](https://www.figma.com/board/711K35nd0soK335KpeVYrK)
 
 ## 기술 스택
 
