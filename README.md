@@ -9,6 +9,10 @@
 - 위험도 3단계 표시 (낮음 / 중간 / 높음)
 - **홍수 영웅 퀴즈** — 초등학생 대상 O/X 퀴즈 게임 (10문제) → [바로 플레이하기 🎮](https://seonghwanaa.github.io/Weather_ML/홍수영웅퀴즈.html)
 
+## 시스템 플로우차트
+
+![시스템 플로우차트](플로우차트.png)
+
 ## 기술 스택
 
 | 구분 | 기술 |
@@ -67,18 +71,26 @@ python app.py
 
 ```
 미니프로젝트/
-├── app.py                  # Flask API 서버
-├── train_model.py          # 모델 학습 스크립트
-├── requirements.txt        # 패키지 목록
+├── app.py                      # Flask API 서버
+├── train_model.py              # 모델 학습 스크립트
+├── requirements.txt            # 패키지 목록
 ├── README.md
 ├── .gitignore
-├── 홍수영웅퀴즈.html         # 초등학생 O/X 퀴즈 게임
+├── 시뮬레이터.html               # 침수 위험도 대시보드
+├── 홍수영웅퀴즈.html             # 초등학생 O/X 퀴즈 게임
+├── 플로우차트.png                # 시스템 플로우차트
+├── 지하차도_침수예측_AI_기획안.pdf  # 프로젝트 기획안
+├── SRS.docx                    # 소프트웨어 요구사항 명세서
 ├── data/
-│   └── 지하차도_ML_최종데이터.csv
-├── model/                  # train_model.py 실행 후 자동 생성 (.gitignore 제외)
+│   ├── 지하차도_ML_최종데이터.csv  # ML 학습용 최종 데이터
+│   ├── 피해상황-침수상황.csv
+│   ├── 행정안전부_침수흔적도.csv
+│   ├── 국토교통부_시설물안전법 대상 지하차도 현황_20230930.csv
+│   └── ...기타 지자체 지하차도 현황 CSV (13개)
+├── model/                      # train_model.py 실행 후 자동 생성 (.gitignore 제외)
 │   ├── best_model.pkl
 │   ├── scaler.pkl
 │   └── features.pkl
 └── templates/
-    └── index.html          # 대시보드 화면
+    └── index.html              # Flask 템플릿
 ```
